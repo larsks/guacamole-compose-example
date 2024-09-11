@@ -1,0 +1,37 @@
+services:
+  postgres:
+    build:
+      context: .
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_DATABASE: "${POSTGRES_DATABASE}"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}"]
+      interval: "10s"
+      retries: 3
+    volumes:
+      - pg_data:/var/lib/postgres
+  guacd:
+    image: docker.io/guacamole/guacd
+  guacamole:
+    image: docker.io/guacamole/guacamole:latest
+    environment:
+      POSTGRESQL_HOSTNAME: postgres
+      POSTGRESQL_PORT: 5432
+      POSTGRESQL_USER: "${POSTGRES_USER}"
+      POSTGRESQL_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRESQL_DATABASE: "${POSTGRES_DATABASE}"
+      GUACD_HOSTNAME: guacd
+    depends_on:
+      postgres:
+        condition: service_healthy
+  nginx:
+    image: docker.io/nginx:mainline
+    volumes:
+      - ./nginx/guac.conf:/etc/nginx/conf.d/guac.conf
+    ports:
+      - "8080:80"
+
+volumes:
+  pg_data:
